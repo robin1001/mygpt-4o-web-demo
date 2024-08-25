@@ -4,7 +4,22 @@ MyGPT-4o, gpt-4o like web demo.
 
 ## Install(TODO)
 
-## Run(TODO)
+## Run
+
+1. Start server
+
+``` bash
+$ python server/server.py
+```
+
+2. Start frontend
+
+First change `SERVER_URL` to your server url in `frontend/src/components/Session/index.tsx`, then
+
+``` bash
+$ cd frontend
+$ yarn run dev
+```
 
 ## System Overview
 
