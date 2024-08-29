@@ -45,13 +45,13 @@ export const Layout = () => {
 };
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    {isFirefox && (
-      <div className="bg-red-500 text-white text-sm font-bold text-center p-2 fixed t-0 w-full">
-        Latency readings can be inaccurate in Firefox. For best results, please
-        use Chrome.
-      </div>
-    )}
-    <Layout />
-  </React.StrictMode>
+  // <React.StrictMode>
+  //   {isFirefox && (
+  //     <div className="bg-red-500 text-white text-sm font-bold text-center p-2 fixed t-0 w-full">
+  //       Latency readings can be inaccurate in Firefox. For best results, please
+  //       use Chrome.
+  //     </div>
+  //   )}
+  <Layout />
+  // </React.StrictMode>
 );

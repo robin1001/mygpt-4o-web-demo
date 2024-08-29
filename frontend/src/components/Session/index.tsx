@@ -47,7 +47,13 @@ export const Session = React.memo(
           mediaRecorderRef.current.start(1000);
         }
       );
-    });
+
+      return () => {
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stop();
+        }
+      }
+    }, []);
 
     useEffect(() => {
       if (!socketRef.current) {
@@ -82,7 +88,13 @@ export const Session = React.memo(
           });
         }
       }
-    });
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current?.close();
+        }
+      }
+    }, []);
 
     useEffect(() => {
       const interval = setInterval(() => {
@@ -90,7 +102,7 @@ export const Session = React.memo(
         setVolume(v);
       }, 100);
       return () => clearInterval(interval);
-    });
+    }, []);
 
     function getVolumeLevel(): number {
       if (analyserRef.current) {
