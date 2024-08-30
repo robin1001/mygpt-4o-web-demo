@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import wave
 import json
+import os
 import uuid
+import wave
 
 import numpy as np
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
+import wenet
 
 from vad import Vad, VadState
 
@@ -30,9 +32,11 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         super().__init__(*args, **kwargs)
         self.total_audio = b''
         self.vad = Vad()
+        self.asr = wenet.load_model('chinese')
         self.speech = []
-        self.id = uuid.uuid1()
+        self.id = str(uuid.uuid1())
         self.index = 0
+        self.save_dir = 'wav'
 
     def check_origin(self, origin):
         return True
@@ -57,12 +61,18 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                 print('Speech end')
                 self.speech.append(a)
                 speech_segment = np.concatenate(self.speech, axis=0)
-                self.write_wav(f'{self.id}.{self.index}.wav',
-                               speech_segment.tobytes())
+                fname = os.path.join(self.save_dir, self.id,
+                                     f'{self.index}.wav')
+                self.write_wav(fname, speech_segment.tobytes())
+                result = self.asr.transcribe(fname)
+                print(result['text'])
                 self.speech = []
                 self.index += 1
 
     def write_wav(self, file_name, data):
+        parent_dir = os.path.dirname(file_name)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
         with wave.open(file_name, 'wb') as wf:
             wf.setnchannels(1)
             wf.setsampwidth(2)
@@ -71,7 +81,8 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         print("WebSocket closed")
-        self.write_wav(f'{self.id}.wav', self.total_audio)
+        save_path = os.path.join(self.save_dir, self.id, 'all.wav')
+        self.write_wav(save_path, self.total_audio)
 
 
 class MainHandler(tornado.web.RequestHandler):
