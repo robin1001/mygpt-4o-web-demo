@@ -1,3 +1,18 @@
+# Copyright (c) 2024 Binbin Zhang(binbzha@qq.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import wave
 import json
 
 import tornado.ioloop
@@ -17,28 +32,16 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         print("WebSocket opened")
 
-    # def on_message(self, message):
-    #     print(type(message))
-    #     self.audio += message
-    #     self.write_message(message, isinstance(message, bytes))
-    #     print('Total size', len(self.audio))
-
     def on_message(self, message):
-        print(type(message))
-        from pydub import AudioSegment
-        import time
-        audio = AudioSegment.from_file("test.opus")
-        frame_duration = 2000
-        for start in range(0, len(audio), frame_duration):
-            frame = audio[start:start + frame_duration]
-            opus_bytes = frame.export(format='opus').read()
-            self.write_message(opus_bytes, True)
-            time.sleep(1)
+        self.audio += message
 
     def on_close(self):
         print("WebSocket closed")
-        # with open('test.opus', 'wb') as f:
-        #     f.write(self.audio)
+        with wave.open('test.wav', 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(16000)
+            wf.writeframes(self.audio)
 
 
 class MainHandler(tornado.web.RequestHandler):

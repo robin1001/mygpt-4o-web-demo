@@ -19,7 +19,7 @@ export const Session = React.memo(
     const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
-
+    const audioContext = new AudioContext({ sampleRate: 16000 });
 
     // ---- Effects
     useEffect(() => {
@@ -28,32 +28,70 @@ export const Session = React.memo(
     }, []);
 
     useEffect(() => {
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(
-        stream => {
-          mediaRecorderRef.current = new MediaRecorder(stream);
-          audioContextRef.current = new AudioContext();
-          const source = audioContextRef.current.createMediaStreamSource(stream);
-          analyserRef.current = audioContextRef.current.createAnalyser();
-          analyserRef.current.smoothingTimeConstant = 0.0;
-          analyserRef.current.fftSize = 1024;
-          source.connect(analyserRef.current);
-          mediaRecorderRef.current.ondataavailable = (event) => {
+      // 创建 AudioContext，并指定采样率（例如 44100 Hz）
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          const source = audioContext.createMediaStreamSource(stream);
+          const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+          source.connect(scriptProcessor);
+          scriptProcessor.connect(audioContext.destination);
+          scriptProcessor.onaudioprocess = function (event) {
+            const inputBuffer = event.inputBuffer;
+            const channelData = inputBuffer.getChannelData(0);
+            const pcm_data = float32ToInt16(channelData);
             if (socketRef.current) {
               if (socketRef.current.readyState === WebSocket.OPEN) {
-                socketRef.current.send(event.data);
+                socketRef.current.send(pcm_data.buffer);
               }
             }
           };
-          mediaRecorderRef.current.start(1000);
-        }
-      );
+        })
+        .catch(error => {
+          console.error('获取媒体流失败:', error);
+        });
 
-      return () => {
-        if (mediaRecorderRef.current) {
-          mediaRecorderRef.current.stop();
-        }
-      }
     }, []);
+
+    function float32ToInt16(float32Array: Float32Array): Int16Array {
+      // Create a new Int16Array with the same length as the Float32Array
+      let int16Array = new Int16Array(float32Array.length);
+
+      // Iterate over the Float32Array and convert each value
+      for (let i = 0; i < float32Array.length; i++) {
+        // Scale the float to fit within the range of Int16
+        int16Array[i] = Math.max(-32768, Math.min(32767, Math.floor(float32Array[i] * 32767)));
+      }
+
+      return int16Array;
+    }
+
+    // useEffect(() => {
+    //   navigator.mediaDevices.getUserMedia({ audio: true }).then(
+    //     stream => {
+    //       mediaRecorderRef.current = new MediaRecorder(stream);
+    //       audioContextRef.current = new AudioContext();
+    //       const source = audioContextRef.current.createMediaStreamSource(stream);
+    //       analyserRef.current = audioContextRef.current.createAnalyser();
+    //       analyserRef.current.smoothingTimeConstant = 0.0;
+    //       analyserRef.current.fftSize = 1024;
+    //       source.connect(analyserRef.current);
+    //       mediaRecorderRef.current.ondataavailable = (event) => {
+    //         if (socketRef.current) {
+    //           if (socketRef.current.readyState === WebSocket.OPEN) {
+    //             socketRef.current.send(event.data);
+    //           }
+    //         }
+    //       };
+    //       mediaRecorderRef.current.start(1000);
+    //     }
+    //   );
+
+    //   return () => {
+    //     if (mediaRecorderRef.current) {
+    //       mediaRecorderRef.current.stop();
+    //     }
+    //   }
+    // }, []);
 
     useEffect(() => {
       if (!socketRef.current) {
