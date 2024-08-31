@@ -17,6 +17,7 @@ import os
 import uuid
 import wave
 
+from openai import OpenAI
 import numpy as np
 import tornado.ioloop
 import tornado.web
@@ -27,6 +28,36 @@ import config
 from vad import Vad, VadState
 
 
+class LLM:
+
+    def __init__(self):
+        self.client = OpenAI(api_key=config.OPENAI_API_KEY,
+                             base_url=config.OPENAI_BASE_URL)
+        self.history = []
+
+    def predict(self, message):
+        history_openai_format = []
+        for human, assistant in self.history:
+            history_openai_format.append({"role": "user", "content": human})
+            history_openai_format.append({
+                "role": "assistant",
+                "content": assistant
+            })
+        history_openai_format.append({"role": "user", "content": message})
+        response = self.client.chat.completions.create(
+            model=config.LLM_MODEL,
+            messages=history_openai_format,
+            temperature=1.0,
+            stream=True)
+        partial_message = ""
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                partial_message = partial_message + chunk.choices[
+                    0].delta.content
+        self.history.append((message, partial_message))
+        return partial_message
+
+
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
     def __init__(self, *args, **kwargs):
@@ -34,6 +65,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.total_audio = b''
         self.vad = Vad(model_dir=config.VAD_MODEL)
         self.asr = wenet.load_model(config.WENET_MODEL)
+        self.llm = LLM()
         self.speech = []
         self.id = str(uuid.uuid1())
         self.index = 0
@@ -66,7 +98,11 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                                      f'{self.index}.wav')
                 self.write_wav(fname, speech_segment.tobytes())
                 result = self.asr.transcribe(fname)
-                print(result['text'])
+                user_msg = result['text']
+                if user_msg != '':
+                    print('User:', user_msg)
+                    assistant_msg = self.llm.predict(user_msg)
+                    print('Assistant:', assistant_msg)
                 self.speech = []
                 self.index += 1
 

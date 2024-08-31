@@ -3,3 +3,4 @@ torchaudio
 tornado
 numpy
 git+https://github.com/wenet-e2e/wenet.git
+openai
