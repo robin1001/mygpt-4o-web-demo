@@ -23,6 +23,7 @@ import tornado.web
 import tornado.websocket
 import wenet
 
+import config
 from vad import Vad, VadState
 
 
@@ -31,8 +32,8 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.total_audio = b''
-        self.vad = Vad()
-        self.asr = wenet.load_model('chinese')
+        self.vad = Vad(model_dir=config.VAD_MODEL)
+        self.asr = wenet.load_model(config.WENET_MODEL)
         self.speech = []
         self.id = str(uuid.uuid1())
         self.index = 0
@@ -112,5 +113,5 @@ def make_app():
 
 if __name__ == "__main__":
     app = make_app()
-    app.listen(8888)
+    app.listen(config.PORT)
     tornado.ioloop.IOLoop.current().start()

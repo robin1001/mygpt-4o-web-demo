@@ -27,15 +27,18 @@ class VadState(Enum):
 
 class Vad:
 
-    def __init__(self, k_silence_to_speech=5, k_speech_to_silence=10):
+    def __init__(self,
+                 k_silence_to_speech=5,
+                 k_speech_to_silence=10,
+                 model_dir=None):
         print('Load VAD model')
-        # self.model, _ = torch.hub.load(repo_or_dir='snakers4/silero-vad',
-        #                               model='silero_vad')
-        self.model, _ = torch.hub.load(
-            repo_or_dir=
-            '/home/binbzha/.cache/torch/hub/snakers4_silero-vad_master',
-            model='silero_vad',
-            source='local')
+        if model_dir:
+            self.model, _ = torch.hub.load(repo_or_dir=model_dir,
+                                           model='silero_vad',
+                                           source='local')
+        else:
+            self.model, _ = torch.hub.load(repo_or_dir='snakers4/silero-vad',
+                                           model='silero_vad')
         self.sample_rate = 16000
         self.chunk_size = int(0.032 * self.sample_rate)  # 32ms chunk_size
         self.k_silence_to_speech = k_silence_to_speech
