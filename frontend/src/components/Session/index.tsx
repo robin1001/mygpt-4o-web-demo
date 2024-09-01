@@ -16,10 +16,9 @@ export const Session = React.memo(
     const [showStats, setShowStats] = useState(false);
     const [volume, setVolume] = useState(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
+    const audioContextRef = useRef<AudioContext>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
-    const audioContext = new AudioContext({ sampleRate: 16000 });
 
     // ---- Effects
     useEffect(() => {
@@ -31,10 +30,13 @@ export const Session = React.memo(
       // 创建 AudioContext，并指定采样率（例如 44100 Hz）
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          const source = audioContext.createMediaStreamSource(stream);
-          const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+          if (!audioContextRef.current) {
+            audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+          }
+          const source = audioContextRef.current.createMediaStreamSource(stream);
+          const scriptProcessor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
           source.connect(scriptProcessor);
-          scriptProcessor.connect(audioContext.destination);
+          scriptProcessor.connect(audioContextRef.current.destination);
           scriptProcessor.onaudioprocess = function (event) {
             const inputBuffer = event.inputBuffer;
             const channelData = inputBuffer.getChannelData(0);

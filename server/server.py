@@ -17,6 +17,7 @@ import os
 import uuid
 import wave
 
+import edge_tts
 from openai import OpenAI
 import numpy as np
 import tornado.ioloop
@@ -83,8 +84,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         # VAD
         states, audios = self.vad.add_audio(pcm_data)
         for s, a in zip(states, audios):
-            # print(s, a)
-            # print(s)
             if s == VadState.SPEECH_START:
                 print('Speech start')
                 self.speech.append(a)
@@ -101,8 +100,20 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                 user_msg = result['text']
                 if user_msg != '':
                     print('User:', user_msg)
+                    # LLM
                     assistant_msg = self.llm.predict(user_msg)
                     print('Assistant:', assistant_msg)
+                    communicate = edge_tts.Communicate(assistant_msg,
+                                                       config.TTS_SPEAKER)
+                    # TTS
+                    rdata = b''
+                    for chunk in communicate.stream_sync():
+                        if chunk["type"] == "audio":
+                            rdata += chunk['data']
+                            # TODO(Binbin Zhang): streaming send
+                        elif chunk["type"] == "WordBoundary":
+                            print(f"WordBoundary: {chunk}")
+                    self.write_message(rdata, True)
                 self.speech = []
                 self.index += 1
 
