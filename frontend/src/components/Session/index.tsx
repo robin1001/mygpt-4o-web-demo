@@ -40,6 +40,8 @@ export const Session = React.memo(
           scriptProcessor.onaudioprocess = function (event) {
             const inputBuffer = event.inputBuffer;
             const channelData = inputBuffer.getChannelData(0);
+            const v = computeVolume(channelData);
+            setVolume(v);
             const pcm_data = float32ToInt16(channelData);
             if (socketRef.current) {
               if (socketRef.current.readyState === WebSocket.OPEN) {
@@ -54,6 +56,7 @@ export const Session = React.memo(
 
     }, []);
 
+
     function float32ToInt16(float32Array: Float32Array): Int16Array {
       // Create a new Int16Array with the same length as the Float32Array
       let int16Array = new Int16Array(float32Array.length);
@@ -65,6 +68,17 @@ export const Session = React.memo(
       }
 
       return int16Array;
+    }
+
+    function computeVolume(float32Array: Float32Array): number {
+      let sum = 0;
+      // Iterate over the Float32Array and convert each value
+      for (let i = 0; i < float32Array.length; i++) {
+        sum += Math.abs(float32Array[i]);
+      }
+      const average = sum / float32Array.length;
+      const level = average * 10;
+      return level < 1.0 ? level : 1.0;
     }
 
     // useEffect(() => {
