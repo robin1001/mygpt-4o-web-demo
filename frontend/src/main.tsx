@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom/client";
-import { VoiceClient } from "realtime-ai";
-import { VoiceClientAudio, VoiceClientProvider } from "realtime-ai-react";
 
 import { Header } from "./components/ui/header";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -15,12 +13,6 @@ import "./global.css"; // Note: Core app layout can be found here
 // @ts-expect-error - Firefox is not well support
 const isFirefox: boolean = typeof InstallTrigger !== "undefined";
 
-const voiceClient = new VoiceClient({
-  baseUrl: import.meta.env.VITE_BASE_URL,
-  enableMic: true,
-  config: defaultConfig,
-});
-
 export const Layout = () => {
   const [showSplash, setShowSplash] = useState<boolean>(true);
 
@@ -29,18 +21,15 @@ export const Layout = () => {
   }
 
   return (
-    <VoiceClientProvider voiceClient={voiceClient}>
-      <TooltipProvider>
-        <main>
-          <Header />
-          <div id="app">
-            <App />
-          </div>
-        </main>
-        <aside id="tray" />
-        <VoiceClientAudio />
-      </TooltipProvider>
-    </VoiceClientProvider>
+    <TooltipProvider>
+      <main>
+        <Header />
+        <div id="app">
+          <App />
+        </div>
+      </main>
+      <aside id="tray" />
+    </TooltipProvider>
   );
 };
 

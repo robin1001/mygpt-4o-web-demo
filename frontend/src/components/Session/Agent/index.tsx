@@ -1,8 +1,6 @@
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import clsx from "clsx";
 import { Loader2 } from "lucide-react";
-import { VoiceEvent } from "realtime-ai";
-import { useVoiceClientEvent } from "realtime-ai-react";
 
 import Latency from "@/components/Latency";
 
@@ -28,14 +26,6 @@ export const Agent: React.FC<{
       setHasStarted(true);
       setBotStatus("connected");
     }, [isReady]);
-
-    useVoiceClientEvent(
-      VoiceEvent.BotDisconnected,
-      useCallback(() => {
-        setHasStarted(false);
-        setBotStatus("disconnected");
-      }, [])
-    );
 
     // Cleanup
     useEffect(() => () => setHasStarted(false), []);

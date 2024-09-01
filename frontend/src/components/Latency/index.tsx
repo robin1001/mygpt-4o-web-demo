@@ -1,8 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { VoiceEvent } from "realtime-ai";
-import { useVoiceClientMediaTrack } from "realtime-ai-react";
-import { useVoiceClientEvent } from "realtime-ai-react";
 import { VAD, VADState } from "web-vad";
 import AudioWorkletURL from "web-vad/dist/worklet?worker&url";
 
@@ -33,7 +30,7 @@ const Latency: React.FC<{
   statsAggregator: StatsAggregator;
 }> = memo(
   ({ started = false, botStatus, statsAggregator }) => {
-    const localMediaTrack = useVoiceClientMediaTrack("audio", "local");
+    // const localMediaTrack = useVoiceClientMediaTrack("audio", "local");
     const [vadInstance, setVadInstance] = useState<VAD | null>(null);
     const [currentState, setCurrentState] = useState<State>(State.SILENT);
     const [botTalkingState, setBotTalkingState] = useState<State | undefined>(
@@ -80,40 +77,40 @@ const Latency: React.FC<{
     }, [statsAggregator]);
 
     // Stop timer when bot starts talking
-    useVoiceClientEvent(
-      VoiceEvent.RemoteAudioLevel,
-      useCallback(
-        (volume) => {
-          if (volume > REMOTE_AUDIO_THRESHOLD && startTimeRef.current) {
-            stopTimer();
-          }
-        },
-        [stopTimer]
-      )
-    );
+    // useVoiceClientEvent(
+    //   VoiceEvent.RemoteAudioLevel,
+    //   useCallback(
+    //     (volume) => {
+    //       if (volume > REMOTE_AUDIO_THRESHOLD && startTimeRef.current) {
+    //         stopTimer();
+    //       }
+    //     },
+    //     [stopTimer]
+    //   )
+    // );
 
-    useVoiceClientEvent(
-      VoiceEvent.BotStoppedTalking,
-      useCallback(() => {
-        setBotTalkingState(State.SILENT);
-      }, [])
-    );
+    // useVoiceClientEvent(
+    //   VoiceEvent.BotStoppedTalking,
+    //   useCallback(() => {
+    //     setBotTalkingState(State.SILENT);
+    //   }, [])
+    // );
 
-    useVoiceClientEvent(
-      VoiceEvent.BotStartedTalking,
-      useCallback(() => {
-        setBotTalkingState(State.SPEAKING);
-      }, [])
-    );
+    // useVoiceClientEvent(
+    //   VoiceEvent.BotStartedTalking,
+    //   useCallback(() => {
+    //     setBotTalkingState(State.SPEAKING);
+    //   }, [])
+    // );
 
-    useVoiceClientEvent(
-      VoiceEvent.LocalStartedTalking,
-      useCallback(() => {
-        if (!hasSpokenOnce) {
-          setHasSpokenOnce(true);
-        }
-      }, [hasSpokenOnce])
-    );
+    // useVoiceClientEvent(
+    //   VoiceEvent.LocalStartedTalking,
+    //   useCallback(() => {
+    //     if (!hasSpokenOnce) {
+    //       setHasSpokenOnce(true);
+    //     }
+    //   }, [hasSpokenOnce])
+    // );
 
     /* ---- Effects ---- */
 
@@ -140,42 +137,42 @@ const Latency: React.FC<{
       startTimer();
     }, [started, vadInstance, currentState, startTimer, hasSpokenOnce]);
 
-    useEffect(() => {
-      if (mountedRef.current || !localMediaTrack) {
-        return;
-      }
+    // useEffect(() => {
+    //   if (mountedRef.current || !localMediaTrack) {
+    //     return;
+    //   }
 
-      async function loadVad() {
-        const stream = new MediaStream([localMediaTrack!]);
+    //   async function loadVad() {
+    //     const stream = new MediaStream([localMediaTrack!]);
 
-        const vad = new VAD({
-          workletURL: AudioWorkletURL,
-          stream,
-          positiveSpeechThreshold: VAD_POSITIVE_SPEECH_THRESHOLD,
-          negativeSpeechThreshold: VAD_NEGATIVE_SPEECH_THRESHOLD,
-          minSpeechFrames: VAD_MIN_SPEECH_FRAMES,
-          redemptionFrames: VAD_REDEMPTION_FRAMES,
-          preSpeechPadFrames: VAD_PRESPEECH_PAD_FRAMES,
-          onSpeechStart: () => {
-            setCurrentState(State.SPEAKING);
-          },
-          onVADMisfire: () => {
-            setCurrentState(State.SILENT);
-          },
-          onSpeechEnd: () => {
-            setCurrentState(State.SILENT);
-          },
-        });
-        await vad.init();
-        vad.start();
-        setVadInstance(vad);
-      }
+    //     const vad = new VAD({
+    //       workletURL: AudioWorkletURL,
+    //       stream,
+    //       positiveSpeechThreshold: VAD_POSITIVE_SPEECH_THRESHOLD,
+    //       negativeSpeechThreshold: VAD_NEGATIVE_SPEECH_THRESHOLD,
+    //       minSpeechFrames: VAD_MIN_SPEECH_FRAMES,
+    //       redemptionFrames: VAD_REDEMPTION_FRAMES,
+    //       preSpeechPadFrames: VAD_PRESPEECH_PAD_FRAMES,
+    //       onSpeechStart: () => {
+    //         setCurrentState(State.SPEAKING);
+    //       },
+    //       onVADMisfire: () => {
+    //         setCurrentState(State.SILENT);
+    //       },
+    //       onSpeechEnd: () => {
+    //         setCurrentState(State.SILENT);
+    //       },
+    //     });
+    //     await vad.init();
+    //     vad.start();
+    //     setVadInstance(vad);
+    //   }
 
-      // Load VAD
-      loadVad();
+    //   // Load VAD
+    //   loadVad();
 
-      mountedRef.current = true;
-    }, [localMediaTrack]);
+    //   mountedRef.current = true;
+    // }, [localMediaTrack]);
 
     // Cleanup VAD
     useEffect(
@@ -244,8 +241,8 @@ const Latency: React.FC<{
               {botStatus === "disconnected"
                 ? "Disconnected"
                 : botTalkingState === State.SPEAKING
-                ? "Speaking"
-                : botStatus}
+                  ? "Speaking"
+                  : botStatus}
             </span>
           </div>
         </div>

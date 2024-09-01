@@ -125,7 +125,6 @@ export const Session = React.memo(
         };
 
         socketRef.current.onmessage = async (e) => {
-          console.log('recv', e.data);
           await blobToArrayBuffer(e.data).then(arrayBuffer => {
             if (audioContextRef.current) {
               audioContextRef.current.decodeAudioData(arrayBuffer).then(buffer => {

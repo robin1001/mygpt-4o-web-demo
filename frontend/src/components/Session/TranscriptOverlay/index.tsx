@@ -1,6 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { VoiceEvent } from "realtime-ai";
-import { useVoiceClientEvent } from "realtime-ai-react";
+import React, { useEffect, useRef, useState } from "react";
 
 import styles from "./styles.module.css";
 
@@ -19,13 +17,6 @@ const TranscriptOverlay: React.FC = () => {
 
     return () => clearInterval(intervalRef.current!);
   }, [sentences]);
-
-  useVoiceClientEvent(
-    VoiceEvent.BotTranscript,
-    useCallback((transcript) => {
-      setSentences((s) => [...s, transcript]);
-    }, [])
-  );
 
   return (
     <div className={styles.container}>
