@@ -31,6 +31,7 @@ export const Session = React.memo(
       stats_aggregator = new StatsAggregator();
     }, []);
 
+
     useEffect(() => {
       // 创建 AudioContext，并指定采样率（例如 44100 Hz）
       navigator.mediaDevices.getUserMedia({ audio: true })
@@ -61,6 +62,7 @@ export const Session = React.memo(
 
     }, []);
 
+
     useEffect(() => {
       const mediaSource = new MediaSource();
       mediaSourceRef.current = mediaSource;
@@ -90,31 +92,6 @@ export const Session = React.memo(
     }, []);
 
 
-    function float32ToInt16(float32Array: Float32Array): Int16Array {
-      // Create a new Int16Array with the same length as the Float32Array
-      let int16Array = new Int16Array(float32Array.length);
-
-      // Iterate over the Float32Array and convert each value
-      for (let i = 0; i < float32Array.length; i++) {
-        // Scale the float to fit within the range of Int16
-        int16Array[i] = Math.max(-32768, Math.min(32767, Math.floor(float32Array[i] * 32767)));
-      }
-
-      return int16Array;
-    }
-
-    function computeVolume(float32Array: Float32Array): number {
-      let sum = 0;
-      // Iterate over the Float32Array and convert each value
-      for (let i = 0; i < float32Array.length; i++) {
-        sum += Math.abs(float32Array[i]);
-      }
-      const average = sum / float32Array.length;
-      const level = average * 10;
-      return level < 1.0 ? level : 1.0;
-    }
-
-
     useEffect(() => {
       if (!socketRef.current) {
         socketRef.current = new WebSocket(SERVER_URL);
@@ -132,7 +109,6 @@ export const Session = React.memo(
         };
 
         socketRef.current.onmessage = (event) => {
-          console.log('recv', event.data);
           if (sourceBufferRef.current && !sourceBufferRef.current.updating) {
             sourceBufferRef.current.appendBuffer(event.data);
           } else {
@@ -149,40 +125,31 @@ export const Session = React.memo(
       }
     }, []);
 
-    useEffect(() => {
-      const interval = setInterval(() => {
-        const v = getVolumeLevel();
-        setVolume(v);
-      }, 100);
-      return () => clearInterval(interval);
-    }, []);
 
-    function getVolumeLevel(): number {
-      if (analyserRef.current) {
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyserRef.current.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
-        }
-        const average = sum / bufferLength;
-        const level = average / 255 * 10;
-        return level < 1.0 ? level : 1.0;
+    function float32ToInt16(float32Array: Float32Array): Int16Array {
+      // Create a new Int16Array with the same length as the Float32Array
+      let int16Array = new Int16Array(float32Array.length);
+
+      // Iterate over the Float32Array and convert each value
+      for (let i = 0; i < float32Array.length; i++) {
+        // Scale the float to fit within the range of Int16
+        int16Array[i] = Math.max(-32768, Math.min(32767, Math.floor(float32Array[i] * 32767)));
       }
-      return 0;
+
+      return int16Array;
     }
 
-    const blobToArrayBuffer = (blob: Blob): Promise<ArrayBuffer> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          resolve(event.target?.result as ArrayBuffer);
-        };
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(blob);
-      });
-    };
+
+    function computeVolume(float32Array: Float32Array): number {
+      let sum = 0;
+      // Iterate over the Float32Array and convert each value
+      for (let i = 0; i < float32Array.length; i++) {
+        sum += Math.abs(float32Array[i]);
+      }
+      const average = sum / float32Array.length;
+      const level = average * 10;
+      return level < 1.0 ? level : 1.0;
+    }
 
     const style = {
       visibility: 'hidden' // 或 'visible'
