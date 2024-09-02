@@ -106,14 +106,11 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                     communicate = edge_tts.Communicate(assistant_msg,
                                                        config.TTS_SPEAKER)
                     # TTS
-                    rdata = b''
                     for chunk in communicate.stream_sync():
                         if chunk["type"] == "audio":
-                            rdata += chunk['data']
-                            # TODO(Binbin Zhang): streaming send
+                            self.write_message(chunk['data'], True)
                         elif chunk["type"] == "WordBoundary":
                             print(f"WordBoundary: {chunk}")
-                    self.write_message(rdata, True)
                 self.speech = []
                 self.index += 1
 

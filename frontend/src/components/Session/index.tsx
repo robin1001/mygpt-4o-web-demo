@@ -20,6 +20,11 @@ export const Session = React.memo(
     const analyserRef = useRef<AnalyserNode | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
 
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const sourceBufferRef = useRef<SourceBuffer | null>(null);
+    const mediaSourceRef = useRef<MediaSource | null>(null);
+    const pendingChunksRef = useRef<ArrayBuffer[]>([]); // 用于存储待处理的数据块
+
     // ---- Effects
     useEffect(() => {
       // Create new stats aggregator on mount (removes stats from previous session)
@@ -56,6 +61,34 @@ export const Session = React.memo(
 
     }, []);
 
+    useEffect(() => {
+      const mediaSource = new MediaSource();
+      mediaSourceRef.current = mediaSource;
+
+      mediaSource.addEventListener('sourceopen', () => {
+        if (mediaSourceRef.current) {
+          const sourceBuffer = mediaSourceRef.current.addSourceBuffer('audio/mpeg;');
+          sourceBufferRef.current = sourceBuffer;
+          // 监听 sourceBuffer 的更新状态
+          sourceBuffer.addEventListener('updateend', () => {
+            if (pendingChunksRef.current.length > 0 && !sourceBuffer.updating) {
+              sourceBuffer.appendBuffer(pendingChunksRef.current.shift()!);
+            }
+          });
+        }
+      });
+
+      if (audioRef.current && mediaSourceRef.current) {
+        audioRef.current.src = URL.createObjectURL(mediaSourceRef.current);
+      }
+
+      return () => {
+        if (mediaSourceRef.current) {
+          mediaSourceRef.current.endOfStream();
+        }
+      };
+    }, []);
+
 
     function float32ToInt16(float32Array: Float32Array): Int16Array {
       // Create a new Int16Array with the same length as the Float32Array
@@ -81,37 +114,11 @@ export const Session = React.memo(
       return level < 1.0 ? level : 1.0;
     }
 
-    // useEffect(() => {
-    //   navigator.mediaDevices.getUserMedia({ audio: true }).then(
-    //     stream => {
-    //       mediaRecorderRef.current = new MediaRecorder(stream);
-    //       audioContextRef.current = new AudioContext();
-    //       const source = audioContextRef.current.createMediaStreamSource(stream);
-    //       analyserRef.current = audioContextRef.current.createAnalyser();
-    //       analyserRef.current.smoothingTimeConstant = 0.0;
-    //       analyserRef.current.fftSize = 1024;
-    //       source.connect(analyserRef.current);
-    //       mediaRecorderRef.current.ondataavailable = (event) => {
-    //         if (socketRef.current) {
-    //           if (socketRef.current.readyState === WebSocket.OPEN) {
-    //             socketRef.current.send(event.data);
-    //           }
-    //         }
-    //       };
-    //       mediaRecorderRef.current.start(1000);
-    //     }
-    //   );
-
-    //   return () => {
-    //     if (mediaRecorderRef.current) {
-    //       mediaRecorderRef.current.stop();
-    //     }
-    //   }
-    // }, []);
 
     useEffect(() => {
       if (!socketRef.current) {
         socketRef.current = new WebSocket(SERVER_URL);
+        socketRef.current.binaryType = 'arraybuffer';
         socketRef.current.onopen = () => {
           console.log('WebSocket 连接已建立');
         };
@@ -124,21 +131,14 @@ export const Session = React.memo(
           console.log('WebSocket 连接已关闭');
         };
 
-        socketRef.current.onmessage = async (e) => {
-          await blobToArrayBuffer(e.data).then(arrayBuffer => {
-            if (audioContextRef.current) {
-              audioContextRef.current.decodeAudioData(arrayBuffer).then(buffer => {
-                let source = audioContextRef.current.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioContextRef.current.destination);
-                source.start(0);
-              }).catch(derror => {
-                console.log('decode audio error:', derror);
-              });
-            }
-          }).catch(error => {
-            console.log(error);
-          });
+        socketRef.current.onmessage = (event) => {
+          console.log('recv', event.data);
+          if (sourceBufferRef.current && !sourceBufferRef.current.updating) {
+            sourceBufferRef.current.appendBuffer(event.data);
+          } else {
+            // 如果正在更新，将数据存储到待处理队列中
+            pendingChunksRef.current.push(event.data);
+          }
         }
       }
 
@@ -184,6 +184,10 @@ export const Session = React.memo(
       });
     };
 
+    const style = {
+      visibility: 'hidden' // 或 'visible'
+    };
+
     return (
       <>
         <div className="flex-1 flex flex-col items-center justify-center w-full">
@@ -202,6 +206,7 @@ export const Session = React.memo(
             handleMute={() => { }}
             volume={volume}
           />
+          <audio ref={audioRef} controls autoPlay style={style} />;
         </div>
       </>
     );
