@@ -1,13 +1,20 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useContext } from "react";
 
 import FaceSVG from "./face.svg";
 
 import styles from "./styles.module.css";
+import { VolumeContext } from "../VolumeContext";
 
 export const Avatar: React.FC = () => {
+  const { userVolume, setUserVolume, botVolume, setBotVolume } = useContext(VolumeContext);
   const volRef = useRef<HTMLDivElement>(null);
 
-  // volRef.current.style.transform = `scale(${Math.max(1, 1 + volume)})`;
+  useEffect(() => {
+    if (volRef.current) {
+      volRef.current.style.transform = `scale(${Math.max(1, 1 + botVolume)})`;
+    }
+  }, [botVolume]);
+
 
   return (
     <>

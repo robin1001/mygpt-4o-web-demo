@@ -1,18 +1,20 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useContext } from "react";
 import clsx from "clsx";
 import { Mic, MicOff, Pause, Volume } from "lucide-react";
 
+import { VolumeContext } from "../Session/VolumeContext";
 import styles from "./styles.module.css";
 
 const AudioIndicatorBubble: React.FC = (props: { volume: number }) => {
+  const { userVolume, setUserVolume, botVolume, setBotVolume } = useContext(VolumeContext);
   const volRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (volRef.current) {
-      const v = Number(props.volume) * 1.75;
+      const v = userVolume * 1.75;
       volRef.current.style.transform = `scale(${Math.max(0.2, v)})`;
     }
-  }, [props.volume]);
+  }, [userVolume]);
 
   return <div ref={volRef} className={styles.volume} />;
 };
@@ -21,14 +23,12 @@ interface Props {
   active: boolean;
   muted: boolean;
   handleMute: () => void;
-  volume: number;
 }
 
 export default function UserMicBubble({
   active,
   muted = false,
   handleMute,
-  volume,
 }: Props) {
   const canTalk = !muted && active;
 
@@ -50,7 +50,7 @@ export default function UserMicBubble({
             <MicOff size={42} className="size-8 md:size-10" />
           )}
         </div>
-        {canTalk && <AudioIndicatorBubble volume={volume} />}
+        {canTalk && <AudioIndicatorBubble />}
       </div>
     </div>
   );

@@ -1,5 +1,10 @@
 import Session from "./components/Session";
+import { VolumeProvider } from "./components/Session/VolumeContext";
 
 export default function App() {
-  return <Session />;
+  return (
+    <VolumeProvider>
+      <Session />
+    </VolumeProvider>
+  );
 }

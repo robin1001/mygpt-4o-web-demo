@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, createContext, useContext } from "react";
 
 import StatsAggregator from "../../utils/stats_aggregator";
 import * as Card from "../ui/card";
 import UserMicBubble from "../UserMicBubble";
+import { VolumeContext } from "./VolumeContext";
+
 
 import Agent from "./Agent";
 import { arrayBuffer } from "stream/consumers";
@@ -11,19 +13,19 @@ let stats_aggregator: StatsAggregator;
 
 const SERVER_URL = 'ws://127.0.0.1:8888/chat'
 
+
 export const Session = React.memo(
   () => {
+    const { userVolume, setUserVolume, botVolume, setBotVolume } = useContext(VolumeContext);
     const [showStats, setShowStats] = useState(false);
-    const [volume, setVolume] = useState(0);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioContextRef = useRef<AudioContext>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
-
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const sourceBufferRef = useRef<SourceBuffer | null>(null);
     const mediaSourceRef = useRef<MediaSource | null>(null);
     const pendingChunksRef = useRef<ArrayBuffer[]>([]); // 用于存储待处理的数据块
+
 
     // ---- Effects
     useEffect(() => {
@@ -47,7 +49,7 @@ export const Session = React.memo(
             const inputBuffer = event.inputBuffer;
             const channelData = inputBuffer.getChannelData(0);
             const v = computeVolume(channelData);
-            setVolume(v);
+            setUserVolume(v);
             const pcm_data = float32ToInt16(channelData);
             if (socketRef.current) {
               if (socketRef.current.readyState === WebSocket.OPEN) {
@@ -55,6 +57,13 @@ export const Session = React.memo(
               }
             }
           };
+
+          const sourceBot = audioContextRef.current.createMediaElementSource(audioRef.current);
+          const analyser = audioContextRef.current.createAnalyser();
+          analyser.fftSize = 256;  // 设置 FFT 尺寸，以控制频率分辨率
+          sourceBot.connect(analyser);
+          analyser.connect(audioContextRef.current.destination);
+          analyserRef.current = analyser;
         })
         .catch(error => {
           console.error('获取媒体流失败:', error);
@@ -125,6 +134,25 @@ export const Session = React.memo(
       }
     }, []);
 
+    useEffect(() => {
+      const interval = setInterval(() => {
+        if (analyserRef.current) {
+          const bufferLength = analyserRef.current.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyserRef.current.getByteFrequencyData(dataArray);
+          // 简单的音量计算方法：求所有频率值的平均
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / bufferLength / 255;
+          const level = average < 1.0 ? average : 1.0;
+          setBotVolume(level);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }, []);
+
 
     function float32ToInt16(float32Array: Float32Array): Int16Array {
       // Create a new Int16Array with the same length as the Float32Array
@@ -171,7 +199,6 @@ export const Session = React.memo(
             active={true}
             muted={false}
             handleMute={() => { }}
-            volume={volume}
           />
           <audio ref={audioRef} controls autoPlay style={style} />;
         </div>
